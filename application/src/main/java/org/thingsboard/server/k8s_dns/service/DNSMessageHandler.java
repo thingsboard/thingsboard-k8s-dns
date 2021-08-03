@@ -29,6 +29,7 @@ import io.netty.util.internal.SocketUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -44,15 +45,24 @@ public class DNSMessageHandler extends SimpleChannelInboundHandler<DatagramDnsQu
     protected void channelRead0(ChannelHandlerContext ctx, DatagramDnsQuery query) throws Exception {
         log.trace("Processing DNS query: {}", query);
         DatagramDnsResponse response = new DatagramDnsResponse(query.recipient(), query.sender(), query.id());
+        boolean resolved = false;
         int count = query.count(DnsSection.QUESTION);
         for (int index = 0; index < count; index ++) {
             DefaultDnsQuestion question = query.recordAt(DnsSection.QUESTION, index);
             response.addRecord(DnsSection.QUESTION, question);
-            if (question.type() == DnsRecordType.A) {
-                processARecordQuestion(response, question);
+            if (question.type() == DnsRecordType.A || question.type() == DnsRecordType.AAAA) {
+                List<DefaultDnsRawRecord> answers = processARecordQuestion(question);
+                if (question.type() == DnsRecordType.A) {
+                    answers.forEach(answer -> {
+                        response.addRecord(DnsSection.ANSWER, answer);
+                    });
+                }
+                if (!answers.isEmpty()) {
+                    resolved = true;
+                }
             }
         }
-        if (response.count(DnsSection.ANSWER) == 0) {
+        if (!resolved) {
             response.setCode(DnsResponseCode.NXDOMAIN);
         }
         ctx.writeAndFlush(response);
@@ -64,19 +74,21 @@ public class DNSMessageHandler extends SimpleChannelInboundHandler<DatagramDnsQu
         ctx.close();
     }
 
-    private void processARecordQuestion(DatagramDnsResponse response, DefaultDnsQuestion question) {
+    private List<DefaultDnsRawRecord> processARecordQuestion(DefaultDnsQuestion question) {
         String endpointName = toEndpointName(question.name());
         List<String> addressList = resolverService.resolveEndpoint(endpointName);
+        List<DefaultDnsRawRecord> result = new ArrayList<>();
         addressList.forEach(strAddress -> {
             try {
                 byte[] address = SocketUtils.addressByName(strAddress).getAddress();
                 DefaultDnsRawRecord queryAnswer = new DefaultDnsRawRecord(question.name(),
                         DnsRecordType.A, 3600, Unpooled.wrappedBuffer(address));
-                response.addRecord(DnsSection.ANSWER, queryAnswer);
+                result.add(queryAnswer);
             } catch (UnknownHostException e) {
                 log.error("Failed to resolve address: {}", strAddress, e);
             }
         });
+        return result;
     }
 
     private String toEndpointName(String domainName) {
