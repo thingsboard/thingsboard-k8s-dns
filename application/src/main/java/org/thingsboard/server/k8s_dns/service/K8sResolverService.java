@@ -46,8 +46,7 @@ public class K8sResolverService {
     @PostConstruct
     public void init() throws Exception {
         log.info("Initializing k8s client...");
-        ApiClient client = ClientBuilder.standard(false).build();
-        // ApiClient client = ClientBuilder.cluster().build();
+        ApiClient client = ClientBuilder.cluster().build();
         Configuration.setDefaultApiClient(client);
         k8sApi = new CoreV1Api();
         log.info("K8s client initialized.");
