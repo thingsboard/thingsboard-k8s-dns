@@ -65,6 +65,7 @@ public class DNSMessageHandler extends SimpleChannelInboundHandler<DatagramDnsQu
         if (!resolved) {
             response.setCode(DnsResponseCode.NXDOMAIN);
         }
+        log.trace("DNS query response: {}", response);
         ctx.writeAndFlush(response);
     }
 
