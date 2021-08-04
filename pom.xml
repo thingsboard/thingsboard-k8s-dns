@@ -49,6 +49,7 @@
         <jar-plugin.version>3.0.2</jar-plugin.version>
         <winsw.version>2.0.1</winsw.version>
         <javax.validation-api.version>2.0.1.Final</javax.validation-api.version>
+        <guava.version>28.2-jre</guava.version>
         <kubernetes-client-version>10.0.0</kubernetes-client-version>
     </properties>
 
@@ -684,6 +685,11 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
                 <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kubernetes</groupId>

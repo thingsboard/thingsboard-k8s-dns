@@ -15,6 +15,9 @@
  */
 package org.thingsboard.server.k8s_dns.service;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -31,11 +34,21 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class DNSMessageHandler extends SimpleChannelInboundHandler<DatagramDnsQuery> {
 
     private final K8sResolverService resolverService;
+
+    private final LoadingCache<String, List<byte[]>> resolverCache = CacheBuilder.newBuilder()
+            .maximumSize(10000)
+            .expireAfterWrite(10, TimeUnit.SECONDS).build(
+                    new CacheLoader<>() {
+                        public List<byte[]> load(String key) {
+                            return resolveDomain(key);
+                        }
+                    });
 
     public DNSMessageHandler(K8sResolverService resolverService) {
         this.resolverService = resolverService;
@@ -51,13 +64,15 @@ public class DNSMessageHandler extends SimpleChannelInboundHandler<DatagramDnsQu
             DefaultDnsQuestion question = query.recordAt(DnsSection.QUESTION, index);
             response.addRecord(DnsSection.QUESTION, question);
             if (question.type() == DnsRecordType.A || question.type() == DnsRecordType.AAAA) {
-                List<DefaultDnsRawRecord> answers = processARecordQuestion(question);
+                List<byte[]> addresses = resolverCache.get(question.name());
                 if (question.type() == DnsRecordType.A) {
-                    answers.forEach(answer -> {
-                        response.addRecord(DnsSection.ANSWER, answer);
+                    addresses.forEach(address -> {
+                        DefaultDnsRawRecord queryAnswer = new DefaultDnsRawRecord(question.name(),
+                                DnsRecordType.A, 3600, Unpooled.wrappedBuffer(address));
+                        response.addRecord(DnsSection.ANSWER, queryAnswer);
                     });
                 }
-                if (!answers.isEmpty()) {
+                if (!addresses.isEmpty()) {
                     resolved = true;
                 }
             }
@@ -75,16 +90,14 @@ public class DNSMessageHandler extends SimpleChannelInboundHandler<DatagramDnsQu
         ctx.close();
     }
 
-    private List<DefaultDnsRawRecord> processARecordQuestion(DefaultDnsQuestion question) {
-        String endpointName = toEndpointName(question.name());
+    private List<byte[]> resolveDomain(String domainName) {
+        String endpointName = toEndpointName(domainName);
         List<String> addressList = resolverService.resolveEndpoint(endpointName);
-        List<DefaultDnsRawRecord> result = new ArrayList<>();
+        List<byte[]> result = new ArrayList<>();
         addressList.forEach(strAddress -> {
             try {
                 byte[] address = SocketUtils.addressByName(strAddress).getAddress();
-                DefaultDnsRawRecord queryAnswer = new DefaultDnsRawRecord(question.name(),
-                        DnsRecordType.A, 3600, Unpooled.wrappedBuffer(address));
-                result.add(queryAnswer);
+                result.add(address);
             } catch (UnknownHostException e) {
                 log.error("Failed to resolve address: {}", strAddress, e);
             }

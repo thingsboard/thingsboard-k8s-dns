@@ -58,6 +58,7 @@ public class K8sResolverService {
 
     public List<String> resolveEndpoint(String endpointName) {
         try {
+            log.trace("Resolving endpoint: {}", endpointName);
             V1Endpoints endpoints = k8sApi.readNamespacedEndpoints(endpointName, namespace, "false", false, false);
             if (endpoints != null) {
                 List<V1EndpointSubset> subsets = endpoints.getSubsets();
@@ -69,12 +70,16 @@ public class K8sResolverService {
                             ipList.addAll(addresses.stream().map(V1EndpointAddress::getIp).collect(Collectors.toList()));
                         }
                     });
+                    if (log.isTraceEnabled()) {
+                        log.trace("Resolved endpoint '{}' to ip list: {}", endpointName, String.join(", ", ipList));
+                    }
                     return ipList;
                 }
             }
         } catch (ApiException e) {
             log.error("Failed to resolve K8S endpoint [{}], reason: {}", endpointName, e.getMessage());
         }
+        log.trace("Failed to resolve endpoint: {}", endpointName);
         return Collections.emptyList();
     }
 
