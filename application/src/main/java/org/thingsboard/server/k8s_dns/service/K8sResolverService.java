@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2021 The Thingsboard Authors
+ * Copyright © 2016-2025 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +23,15 @@ import io.kubernetes.client.openapi.models.V1EndpointAddress;
 import io.kubernetes.client.openapi.models.V1EndpointSubset;
 import io.kubernetes.client.openapi.models.V1Endpoints;
 import io.kubernetes.client.util.ClientBuilder;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service("K8sResolverService")
 @Slf4j
@@ -59,7 +58,7 @@ public class K8sResolverService {
     public List<String> resolveEndpoint(String endpointName) {
         try {
             log.trace("Resolving endpoint: {}", endpointName);
-            V1Endpoints endpoints = k8sApi.readNamespacedEndpoints(endpointName, namespace, "false", false, false);
+            V1Endpoints endpoints = k8sApi.readNamespacedEndpoints(endpointName, namespace, null);
             if (endpoints != null) {
                 List<V1EndpointSubset> subsets = endpoints.getSubsets();
                 if (subsets != null) {
@@ -67,7 +66,7 @@ public class K8sResolverService {
                     subsets.forEach(subset -> {
                         List<V1EndpointAddress> addresses = subset.getAddresses();
                         if (addresses != null) {
-                            ipList.addAll(addresses.stream().map(V1EndpointAddress::getIp).collect(Collectors.toList()));
+                            ipList.addAll(addresses.stream().map(V1EndpointAddress::getIp).toList());
                         }
                     });
                     if (log.isTraceEnabled()) {
