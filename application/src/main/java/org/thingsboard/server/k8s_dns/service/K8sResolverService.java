@@ -76,7 +76,7 @@ public class K8sResolverService {
                 }
             }
         } catch (ApiException e) {
-            log.error("Failed to resolve K8S endpoint [{}], reason: {}", endpointName, e.getMessage());
+            log.error("Failed to resolve K8S endpoint [{}], reason: ", endpointName, e);
         }
         log.trace("Failed to resolve endpoint: {}", endpointName);
         return Collections.emptyList();
