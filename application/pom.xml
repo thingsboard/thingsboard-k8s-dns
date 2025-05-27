@@ -77,14 +77,14 @@
                 <directory>${project.basedir}/src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>thingsboard.yml</include>
+                    <include>tb-k8s-dns.yml</include>
                 </includes>
             </resource>
             <resource>
                 <directory>${project.basedir}/src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>thingsboard.yml</exclude>
+                    <exclude>tb-k8s-dns.yml</exclude>
                 </excludes>
             </resource>
         </resources>
