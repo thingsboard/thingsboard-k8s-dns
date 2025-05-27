@@ -36,8 +36,9 @@
         <main.dir>${basedir}/../..</main.dir>
         <pkg.name>tb-k8s-dns</pkg.name>
         <docker.name>tb-k8s-dns</docker.name>
-        <pkg.logFolder>/var/log/${pkg.name}</pkg.logFolder>
+        <pkg.unixLogFolder>/var/log/${pkg.name}</pkg.unixLogFolder>
         <pkg.installFolder>/usr/share/${pkg.name}</pkg.installFolder>
+        <docker.push-arm-amd-image.phase>pre-integration-test</docker.push-arm-amd-image.phase>
     </properties>
 
     <dependencies>
