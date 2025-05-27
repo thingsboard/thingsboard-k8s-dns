@@ -25,24 +25,17 @@ java -version
 
 mvn license:format clean install -DskipTests
 
-## Build and push AMD and ARM docker images using docker buildx
 ## Reference to article how to setup docker miltiplatform build environment: https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408
 ## install docker-ce from docker repo https://docs.docker.com/engine/install/ubuntu/
-sudo apt install -y qemu-user-static binfmt-support
-export DOCKER_CLI_EXPERIMENTAL=enabled
-docker version
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+# sudo apt install -y qemu-user-static binfmt-support
+# export DOCKER_CLI_EXPERIMENTAL=enabled
+# docker version
+# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+# docker buildx create --name mybuilder
+# docker buildx use mybuilder
+# docker buildx inspect --bootstrap
+# docker buildx ls
 
-if docker buildx inspect mybuilder >/dev/null 2>&1; then
-    echo "Using existing builder instance 'mybuilder'."
-    docker buildx use mybuilder
-else
-    echo "Creating new builder instance 'mybuilder'."
-    docker buildx create --name mybuilder
-    docker buildx use mybuilder
-    docker buildx inspect --bootstrap
-fi
-
-# build/push multi-platform Docker images
+## Build and push AMD and ARM docker images using docker buildx
 cd msa
 mvn clean install -P push-docker-amd-arm-images
